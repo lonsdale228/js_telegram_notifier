@@ -1,8 +1,23 @@
-FROM node:22.14-alpine
+FROM node:22.14-alpine AS build
 WORKDIR /app
-COPY package.json .
+
+COPY package*.json .
+
 RUN npm install
-RUN npm install -g nodemon
+
 COPY . .
-EXPOSE 4000
-CMD ["nodemon", "--watch", ".", "--legacy-watch", "index.js"]
+
+RUN npm run build
+
+#Production stage
+FROM node:22.14-alpine AS production
+
+WORKDIR /app
+
+COPY package*.json .
+
+RUN npm ci --only=production
+
+COPY --from=build /app/dist ./dist
+
+CMD ["node", "dist/index.js"]
